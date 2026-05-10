@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "instagram-archive-studio"
+version = "0.1.0"
+description = "Local-first Instagram media archive tool for permitted creator and agency workflows."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "instaloader>=4.15.1",
+  "requests>=2.31.0",
+  "python-dotenv>=1.0.0",
+  "tqdm>=4.66.0",
+]
+authors = [{ name = "Instagram Archive Studio" }]
+license = { text = "Proprietary" }
+keywords = ["instagram", "archive", "creator-tools", "media-library"]
+
+[project.scripts]
+instagram-archive-studio = "instagram_archive_studio.cli:main"
+instagram-archive-server = "instagram_archive_studio.server:run"
+
+[tool.setuptools.packages.find]
+include = ["instagram_archive_studio*"]
+
+[tool.setuptools.package-data]
+instagram_archive_studio = ["static/*.html", "static/*.css", "static/*.js", "static/legal/*.html"]

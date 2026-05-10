@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Instagram Archive Studio</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace">
+        <div class="masthead">
+          <div>
+            <p class="eyebrow">Local archive tool</p>
+            <h1>Instagram Archive Studio</h1>
+          </div>
+          <div class="status-pill" id="serviceStatus">Checking service</div>
+        </div>
+
+        <form class="download-panel" id="downloadForm">
+          <div class="mode-tabs" role="tablist" aria-label="Archive mode">
+            <button class="mode-tab is-active" type="button" data-mode="single">Single</button>
+            <button class="mode-tab" type="button" data-mode="batch">Batch</button>
+            <button class="mode-tab" type="button" data-mode="profile">Owner Archive</button>
+          </div>
+
+          <div class="mode-panel is-active" data-panel="single">
+            <label for="url">Instagram URL</label>
+            <div class="url-row">
+              <input id="url" name="url" type="url" placeholder="https://www.instagram.com/reel/..." autocomplete="off">
+              <button type="submit">Start</button>
+            </div>
+          </div>
+
+          <div class="mode-panel" data-panel="batch">
+            <label for="batchUrls">Instagram URLs</label>
+            <textarea id="batchUrls" rows="7" placeholder="https://www.instagram.com/p/...&#10;https://www.instagram.com/reel/..."></textarea>
+            <button type="submit">Start Batch</button>
+          </div>
+
+          <div class="mode-panel" data-panel="profile">
+            <label for="profileUsername">Profile Username</label>
+            <div class="url-row">
+              <input id="profileUsername" name="profileUsername" type="text" placeholder="yourbrand" autocomplete="off">
+              <button type="submit">Archive</button>
+            </div>
+            <label for="sessionFile" class="secondary-label">Instaloader Session File</label>
+            <input id="sessionFile" name="sessionFile" type="text" placeholder="/home/you/.config/instaloader/session-yourbrand">
+          </div>
+
+          <div class="options-row">
+            <label class="check-option">
+              <input id="rightsConfirmed" type="checkbox">
+              <span>I own this content or have permission to save it.</span>
+            </label>
+            <label class="check-option">
+              <input id="makeZip" type="checkbox" checked>
+              <span>Create ZIP</span>
+            </label>
+          </div>
+
+          <p class="form-message" id="formMessage"></p>
+        </form>
+
+        <section class="jobs-section">
+          <div class="section-heading">
+            <h2>Jobs</h2>
+            <div class="toolbar-actions">
+              <a class="ghost-link" href="/api/export/jobs.csv">CSV</a>
+              <a class="ghost-link" href="/api/export/jobs.json">JSON</a>
+              <button class="ghost-button" id="refreshButton" type="button">Refresh</button>
+            </div>
+          </div>
+          <div class="jobs-list" id="jobsList"></div>
+        </section>
+      </section>
+    </main>
+
+    <template id="jobTemplate">
+      <article class="job-card">
+        <div class="job-card-header">
+          <div>
+            <h3></h3>
+            <p class="job-url"></p>
+          </div>
+          <span class="job-status"></span>
+        </div>
+        <p class="job-message"></p>
+        <div class="job-meta"></div>
+        <div class="job-files"></div>
+        <details>
+          <summary>Log</summary>
+          <pre></pre>
+        </details>
+      </article>
+    </template>
+
+    <footer class="legal-footer">
+      <a href="/static/legal/terms.html">Terms</a>
+      <a href="/static/legal/privacy.html">Privacy</a>
+      <a href="/static/legal/acceptable-use.html">Acceptable Use</a>
+    </footer>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,412 @@
+:root {
+  color-scheme: light;
+  --ink: #171717;
+  --muted: #666a73;
+  --line: #d8dbe2;
+  --panel: #ffffff;
+  --page: #f6f7f9;
+  --accent: #1864ab;
+  --accent-strong: #0b4f8a;
+  --success: #0f7a45;
+  --danger: #b42318;
+  --running: #a15c00;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--page);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 32px 20px;
+}
+
+.workspace {
+  width: min(1040px, 100%);
+  margin: 0 auto;
+}
+
+.masthead,
+.section-heading,
+.job-card-header,
+.url-row,
+.options-row,
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.masthead,
+.section-heading,
+.job-card-header {
+  justify-content: space-between;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0;
+  font-size: clamp(2rem, 5vw, 4.25rem);
+  line-height: 0.98;
+  letter-spacing: 0;
+}
+
+h2 {
+  margin-bottom: 0;
+  font-size: 1.15rem;
+}
+
+h3 {
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
+.status-pill,
+.job-status {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: #fff;
+}
+
+.status-pill[data-state="ready"],
+.job-status[data-state="complete"] {
+  color: var(--success);
+}
+
+.status-pill[data-state="failed"],
+.job-status[data-state="failed"] {
+  color: var(--danger);
+}
+
+.job-status[data-state="running"],
+.job-status[data-state="queued"] {
+  color: var(--running);
+}
+
+.download-panel,
+.job-card {
+  margin-top: 24px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 12px 36px rgba(20, 28, 38, 0.07);
+}
+
+.download-panel {
+  padding: 20px;
+}
+
+.mode-tabs {
+  display: inline-flex;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px;
+  margin-bottom: 18px;
+  background: #f8fafc;
+}
+
+.mode-tab {
+  min-height: 34px;
+  border-color: transparent;
+  border-radius: 6px;
+  padding: 0 12px;
+  color: var(--muted);
+  background: transparent;
+}
+
+.mode-tab:hover,
+.mode-tab.is-active {
+  color: #fff;
+  background: var(--accent);
+}
+
+.mode-panel {
+  display: none;
+}
+
+.mode-panel.is-active {
+  display: block;
+}
+
+.download-panel label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.secondary-label {
+  margin-top: 14px;
+}
+
+.url-row {
+  align-items: stretch;
+}
+
+input[type="url"],
+input[type="text"],
+textarea {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  background: #fff;
+}
+
+input[type="url"],
+input[type="text"] {
+  height: 48px;
+  padding: 0 14px;
+}
+
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  padding: 12px 14px;
+  line-height: 1.45;
+}
+
+textarea + button {
+  margin-top: 12px;
+}
+
+button {
+  min-height: 40px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 0 18px;
+  color: #fff;
+  background: var(--accent);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--accent-strong);
+}
+
+.ghost-button {
+  color: var(--accent);
+  background: transparent;
+}
+
+.ghost-button:hover,
+.ghost-link:hover {
+  color: #fff;
+  background: var(--accent);
+}
+
+.ghost-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 0 14px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 750;
+}
+
+.options-row {
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.check-option {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  margin: 0 !important;
+  color: var(--muted);
+  font-weight: 600 !important;
+}
+
+.form-message {
+  min-height: 22px;
+  margin: 12px 0 0;
+  color: var(--danger);
+  font-weight: 650;
+}
+
+.jobs-section {
+  margin-top: 28px;
+}
+
+.jobs-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.job-card {
+  padding: 18px;
+}
+
+.job-url,
+.job-message,
+.job-meta,
+.empty-state {
+  color: var(--muted);
+}
+
+.job-url {
+  max-width: 720px;
+  margin-bottom: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+}
+
+.job-message {
+  margin: 12px 0 8px;
+}
+
+.job-meta {
+  font-size: 0.86rem;
+}
+
+.job-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.file-link {
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: var(--accent);
+  background: #f8fafc;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.archive-link {
+  border-color: #b8d5c4;
+  color: var(--success);
+  background: #f1fbf5;
+}
+
+details {
+  margin-top: 14px;
+}
+
+summary {
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+pre {
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  color: #2c3440;
+  background: #f8fafc;
+  white-space: pre-wrap;
+}
+
+.legal-footer {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  width: min(1040px, 100%);
+  margin: 28px auto 0;
+  padding: 0 20px;
+}
+
+.legal-footer a {
+  color: var(--muted);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.legal-page {
+  width: min(820px, 100%);
+  margin: 0 auto;
+  padding: 36px 20px;
+  line-height: 1.65;
+}
+
+.legal-page h1 {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  margin-bottom: 18px;
+}
+
+.legal-page h2 {
+  margin-top: 28px;
+}
+
+.legal-page a {
+  color: var(--accent);
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 22px 14px;
+  }
+
+  .masthead,
+  .section-heading,
+  .job-card-header,
+  .url-row,
+  .toolbar-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  button,
+  .status-pill,
+  .ghost-link {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .mode-tabs {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}

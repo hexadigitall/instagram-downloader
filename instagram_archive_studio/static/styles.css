@@ -112,7 +112,8 @@ h3 {
 }
 
 .job-status[data-state="running"],
-.job-status[data-state="queued"] {
+.job-status[data-state="queued"],
+.job-status[data-state="duplicate"] {
   color: var(--running);
 }
 

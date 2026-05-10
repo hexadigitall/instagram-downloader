@@ -10,7 +10,7 @@ Based on the dependencies, the intended project was a Python Instagram downloade
 
 The strongest product interpretation is:
 
-Instagram Archive Studio is a local-first tool for saving Instagram posts, Reels, carousels, and creator-owned media into organized folders with metadata, history, and exports.
+Social Archive Studio is a local-first tool for saving permitted Instagram, Twitter/X, TikTok, Snapchat, Pinterest, Facebook, and YouTube media into organized folders with metadata, history, and exports.
 
 The responsible market position is not "download anything from anyone." The better product is "archive content you own, manage, licensed, or have permission to save." That framing improves trust, reduces platform-policy risk, and gives the product a clearer customer.
 
@@ -18,7 +18,7 @@ The responsible market position is not "download anything from anyone." The bett
 
 ### Interface
 
-- Paste-first input for Instagram URLs.
+- Paste-first input for supported social media URLs.
 - Clear content-rights confirmation before downloading.
 - Status area showing queued, running, complete, and failed jobs.
 - Result cards with file counts, metadata, log, and ZIP/download links.
@@ -35,7 +35,7 @@ The responsible market position is not "download anything from anyone." The bett
 ### Site Flow
 
 1. User lands on the app.
-2. User pastes an Instagram URL.
+2. User pastes a supported social media URL.
 3. User confirms rights.
 4. App starts a background job.
 5. User sees progress and final files.
@@ -46,7 +46,8 @@ The responsible market position is not "download anything from anyone." The bett
 - Use background jobs so the UI remains responsive.
 - Store only per-job state in memory and JSON files.
 - Avoid browser automation for the default path.
-- Prefer `instaloader` for direct post resolution.
+- Prefer `instaloader` for Instagram owner archive workflows.
+- Prefer `yt-dlp` for non-Instagram media URLs.
 - Add rate limits, account session support, and queue controls before scaling beyond local use.
 
 ### Relevance
@@ -93,7 +94,7 @@ The project should validate willingness to pay with agencies and creators before
 
 Best growth loops:
 
-- Creator backup checklist content.
+- Creator backup checklist content across major social platforms.
 - Agency asset-management templates.
 - Browser extension for "save to approved library."
 - Integrations with Google Drive, Dropbox, Notion, Airtable, and content calendars.
@@ -132,9 +133,10 @@ Mitigations:
 - URL validation.
 - Metadata and logs.
 - ZIP creation.
-- Batch queue interface.
+- Batch queue interface for supported social URLs.
 - Duplicate detection by Instagram shortcode.
 - Owner profile archive workflow using local Instaloader session files.
+- Twitter/X, TikTok, Snapchat, Pinterest, Facebook, and YouTube URL support through `yt-dlp`.
 - CSV and JSON exports.
 - Mocked downloader tests.
 - Python package metadata and WSL installer script.
@@ -144,7 +146,7 @@ Mitigations:
 ### Next Needed To Make It Production-Grade
 
 - Real progress callbacks from download hooks.
-- Duplicate detection by media hash, not only shortcode.
+- Duplicate detection by media hash, not only shortcode/canonical URL.
 - Session setup assistant that helps users create Instaloader sessions locally without collecting passwords in the web app.
 - Searchable local library view.
 - Rate-limit controls and retry backoff.

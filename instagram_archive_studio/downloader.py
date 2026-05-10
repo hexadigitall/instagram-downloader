@@ -10,11 +10,29 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 
 
 INSTAGRAM_HOSTS = {"instagram.com", "www.instagram.com", "m.instagram.com"}
+SUPPORTED_PLATFORM_HOSTS = {
+    "instagram": ("instagram.com",),
+    "twitter": ("twitter.com", "x.com"),
+    "tiktok": ("tiktok.com", "vm.tiktok.com", "vt.tiktok.com"),
+    "snapchat": ("snapchat.com",),
+    "pinterest": ("pinterest.com", "pin.it"),
+    "facebook": ("facebook.com", "fb.watch"),
+    "youtube": ("youtube.com", "youtu.be"),
+}
+SUPPORTED_PLATFORM_LABELS = {
+    "instagram": "Instagram",
+    "twitter": "Twitter/X",
+    "tiktok": "TikTok",
+    "snapchat": "Snapchat",
+    "pinterest": "Pinterest",
+    "facebook": "Facebook",
+    "youtube": "YouTube",
+}
 SHORTCODE_RE = re.compile(r"/(?:p|reel|reels|tv)/([A-Za-z0-9_-]+)/?")
 USERNAME_RE = re.compile(r"^[A-Za-z0-9._]{1,30}$")
 Downloader = Callable[["Job"], None]
@@ -29,6 +47,7 @@ class Job:
     id: str
     url: str = ""
     kind: str = "post"
+    platform: str = "instagram"
     target: str = ""
     status: str = "queued"
     created_at: str = field(default_factory=lambda: utc_now())
@@ -78,11 +97,53 @@ def validate_instagram_url(raw_url: str) -> str:
     return url
 
 
+def detect_platform(raw_url: str) -> str:
+    parsed = urlparse(raw_url.strip())
+    host = parsed.netloc.lower().removeprefix("www.").removeprefix("m.")
+    for platform, suffixes in SUPPORTED_PLATFORM_HOSTS.items():
+        if any(host == suffix or host.endswith(f".{suffix}") for suffix in suffixes):
+            return platform
+    raise ValueError("Use a supported Instagram, Twitter/X, TikTok, Snapchat, Pinterest, Facebook, or YouTube URL.")
+
+
+def validate_supported_url(raw_url: str) -> tuple[str, str, str]:
+    url = raw_url.strip()
+    if not url:
+        raise ValueError("Paste a supported social media URL.")
+
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError("URL must start with http:// or https://.")
+
+    platform = detect_platform(url)
+    if platform == "instagram":
+        clean_url = validate_instagram_url(url)
+        return clean_url, platform, extract_shortcode(clean_url)
+
+    target = canonical_media_key(url)
+    return url, platform, target
+
+
 def extract_shortcode(url: str) -> str:
     match = SHORTCODE_RE.search(urlparse(url).path)
     if not match:
         raise ValueError("Could not find an Instagram shortcode in the URL.")
     return match.group(1)
+
+
+def canonical_media_key(url: str) -> str:
+    parsed = urlparse(url)
+    host = parsed.netloc.lower().removeprefix("www.").removeprefix("m.")
+    path = re.sub(r"/+", "/", parsed.path).rstrip("/")
+    query = parse_qs(parsed.query)
+    if "v" in query and query["v"]:
+        return f"{host}{path or '/'}?v={query['v'][0]}"
+    return f"{host}{path or '/'}"
+
+
+def safe_name(value: str) -> str:
+    clean = re.sub(r"[^A-Za-z0-9._-]+", "_", value.strip())
+    return clean.strip("._-")[:80] or "media"
 
 
 def validate_username(raw_username: str) -> str:
@@ -101,20 +162,21 @@ class JobStore:
         self._load_existing_jobs()
 
     def create(self, url: str) -> Job:
-        clean_url = validate_instagram_url(url)
-        shortcode = extract_shortcode(clean_url)
+        clean_url, platform, target = validate_supported_url(url)
+        shortcode = target if platform == "instagram" else None
         job_id = uuid4().hex[:12]
-        output_dir = self.root / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{shortcode}_{job_id}"
+        output_dir = self.root / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{platform}_{safe_name(target)}_{job_id}"
         output_dir.mkdir(parents=True, exist_ok=True)
         job = Job(
             id=job_id,
             url=clean_url,
             kind="post",
-            target=shortcode,
+            platform=platform,
+            target=target,
             shortcode=shortcode,
             output_dir=str(output_dir),
         )
-        duplicate = self.find_completed_post(shortcode)
+        duplicate = self.find_completed_media(platform, target)
         if duplicate:
             job.duplicate_of = duplicate.id
             job.add_log(f"Matches completed job {duplicate.id}")
@@ -135,6 +197,7 @@ class JobStore:
         job = Job(
             id=job_id,
             kind="profile",
+            platform="instagram",
             target=clean_username,
             owner_username=clean_username,
             session_file=clean_session,
@@ -154,12 +217,20 @@ class JobStore:
         with self._lock:
             return sorted(self._jobs.values(), key=lambda job: job.created_at, reverse=True)
 
-    def find_completed_post(self, shortcode: str) -> Job | None:
+    def find_completed_media(self, platform: str, target: str) -> Job | None:
         with self._lock:
             for job in self._jobs.values():
-                if job.kind == "post" and job.shortcode == shortcode and job.status == "complete":
+                if (
+                    job.kind == "post"
+                    and job.platform == platform
+                    and job.target == target
+                    and job.status == "complete"
+                ):
                     return job
         return None
+
+    def find_completed_post(self, shortcode: str) -> Job | None:
+        return self.find_completed_media("instagram", shortcode)
 
     def save(self, job: Job) -> None:
         job_path = Path(job.output_dir) / "job.json"
@@ -181,12 +252,14 @@ class DownloadManager:
         store: JobStore,
         post_downloader: Downloader | None = None,
         profile_downloader: Downloader | None = None,
+        generic_downloader: Downloader | None = None,
     ) -> None:
         self.store = store
         self._threads: dict[str, threading.Thread] = {}
         self._lock = threading.RLock()
         self.post_downloader = post_downloader or download_instagram_post
         self.profile_downloader = profile_downloader or download_instagram_profile
+        self.generic_downloader = generic_downloader or download_with_ytdlp
 
     def start(self, url: str, make_zip: bool = True) -> Job:
         job = self.store.create(url)
@@ -208,7 +281,7 @@ class DownloadManager:
         jobs = []
         seen: set[str] = set()
         for url in urls:
-            clean_url = validate_instagram_url(url)
+            clean_url, _, _ = validate_supported_url(url)
             if clean_url in seen:
                 continue
             seen.add(clean_url)
@@ -242,14 +315,16 @@ class DownloadManager:
 
             if job.kind == "profile":
                 self.profile_downloader(job)
-            else:
+            elif job.platform == "instagram":
                 self.post_downloader(job)
+            else:
+                self.generic_downloader(job)
 
             summary_metadata = dict(job.metadata)
             job.files = collect_downloaded_files(Path(job.output_dir))
             job.metadata = {
                 "summary": summary_metadata,
-                "instaloader": load_instaloader_metadata(Path(job.output_dir)),
+                "download_metadata": load_download_metadata(Path(job.output_dir)),
             }
             if make_zip:
                 job.archive = create_archive(Path(job.output_dir))
@@ -334,6 +409,41 @@ def download_instagram_profile(job: Job) -> None:
     loader.download_profile(profile.username, profile_pic=True, fast_update=True)
 
 
+def download_with_ytdlp(job: Job) -> None:
+    try:
+        import yt_dlp
+    except ImportError as exc:
+        raise DownloadError("Install dependencies with: python -m pip install -r requirements.txt") from exc
+
+    output_dir = Path(job.output_dir)
+    output_template = str(output_dir / "%(extractor)s-%(id)s-%(title).200B.%(ext)s")
+    options = {
+        "outtmpl": output_template,
+        "format": "bestvideo+bestaudio/best",
+        "merge_output_format": "mp4",
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+        "writeinfojson": True,
+        "writethumbnail": True,
+    }
+    job.add_log(f"Using yt-dlp for {SUPPORTED_PLATFORM_LABELS.get(job.platform, job.platform)}")
+    with yt_dlp.YoutubeDL(options) as ydl:
+        info = ydl.extract_info(job.url, download=True)
+
+    job.metadata = {
+        "platform": job.platform,
+        "extractor": info.get("extractor"),
+        "id": info.get("id"),
+        "title": info.get("title"),
+        "uploader": info.get("uploader"),
+        "channel": info.get("channel"),
+        "duration": info.get("duration"),
+        "webpage_url": info.get("webpage_url") or job.url,
+    }
+    job.add_log(f"Resolved {job.metadata.get('title') or job.target}")
+
+
 def load_session_if_requested(loader: Any, job: Job) -> None:
     if not job.session_file:
         return
@@ -350,7 +460,7 @@ def collect_downloaded_files(output_dir: Path) -> list[str]:
     return sorted(files)
 
 
-def load_instaloader_metadata(output_dir: Path) -> dict[str, Any]:
+def load_download_metadata(output_dir: Path) -> dict[str, Any]:
     metadata: dict[str, Any] = {}
     for path in output_dir.rglob("*.json"):
         if path.name == "job.json":
@@ -383,6 +493,7 @@ def export_jobs_csv(jobs: list[Job], destination: Path) -> Path:
     fields = [
         "id",
         "kind",
+        "platform",
         "status",
         "target",
         "url",
@@ -403,6 +514,7 @@ def export_jobs_csv(jobs: list[Job], destination: Path) -> Path:
                 {
                     "id": job.id,
                     "kind": job.kind,
+                    "platform": job.platform,
                     "status": job.status,
                     "target": job.target,
                     "url": job.url,

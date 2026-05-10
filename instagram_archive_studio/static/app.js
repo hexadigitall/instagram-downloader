@@ -83,12 +83,26 @@ function renderJobs(jobs) {
 function buildMetaLine(job) {
   const parts = [];
   if (job.created_at) parts.push(`Created ${new Date(job.created_at).toLocaleString()}`);
+  if (job.platform) parts.push(platformLabel(job.platform));
   if (job.kind) parts.push(job.kind === "profile" ? "Owner archive" : "Post");
   if (job.duplicate_of) parts.push(`Duplicate of ${job.duplicate_of}`);
   if (job.files?.length) parts.push(`${job.files.length} files`);
   const owner = job.metadata?.summary?.owner_username || job.metadata?.owner_username;
   if (owner) parts.push(`@${owner}`);
   return parts.join(" | ");
+}
+
+function platformLabel(platform) {
+  const labels = {
+    instagram: "Instagram",
+    twitter: "Twitter/X",
+    tiktok: "TikTok",
+    snapchat: "Snapchat",
+    pinterest: "Pinterest",
+    facebook: "Facebook",
+    youtube: "YouTube",
+  };
+  return labels[platform] || platform;
 }
 
 function renderFiles(container, job) {

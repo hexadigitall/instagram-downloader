@@ -20,7 +20,7 @@ MANAGER = DownloadManager(STORE)
 
 
 class AppHandler(BaseHTTPRequestHandler):
-    server_version = "InstagramArchiveStudio/0.1"
+    server_version = "SocialArchiveStudio/0.1"
 
     def do_HEAD(self) -> None:
         parsed = urlparse(self.path)
@@ -29,7 +29,7 @@ class AppHandler(BaseHTTPRequestHandler):
         elif parsed.path.startswith("/static/"):
             self.send_static(parsed.path.removeprefix("/static/"), head_only=True)
         elif parsed.path == "/api/health":
-            self.send_json({"ok": True, "service": "Instagram Archive Studio"}, head_only=True)
+            self.send_json({"ok": True, "service": "Social Archive Studio"}, head_only=True)
         elif parsed.path == "/api/export/jobs.json":
             self.handle_export("json", head_only=True)
         elif parsed.path == "/api/export/jobs.csv":
@@ -44,7 +44,7 @@ class AppHandler(BaseHTTPRequestHandler):
         elif parsed.path.startswith("/static/"):
             self.send_static(parsed.path.removeprefix("/static/"))
         elif parsed.path == "/api/health":
-            self.send_json({"ok": True, "service": "Instagram Archive Studio"})
+            self.send_json({"ok": True, "service": "Social Archive Studio"})
         elif parsed.path == "/api/jobs":
             self.send_json({"jobs": [asdict(job) for job in STORE.list()]})
         elif parsed.path == "/api/export/jobs.json":
@@ -95,7 +95,7 @@ class AppHandler(BaseHTTPRequestHandler):
             if isinstance(urls, str):
                 urls = [line.strip() for line in urls.splitlines() if line.strip()]
             if not isinstance(urls, list) or not urls:
-                self.send_json({"error": "Add at least one Instagram URL."}, 400)
+                self.send_json({"error": "Add at least one supported social media URL."}, 400)
                 return
             make_zip = bool(body.get("zip", True))
             jobs = MANAGER.start_many([str(url) for url in urls], make_zip=make_zip)
@@ -220,7 +220,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
 def run(host: str = "127.0.0.1", port: int = 8080) -> None:
     server = ThreadingHTTPServer((host, port), AppHandler)
-    print(f"Instagram Archive Studio running at http://{host}:{port}")
+    print(f"Social Archive Studio running at http://{host}:{port}")
     server.serve_forever()
 
 

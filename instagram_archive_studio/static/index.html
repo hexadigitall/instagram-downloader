@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Instagram Archive Studio</title>
+    <title>Social Archive Studio</title>
     <link rel="stylesheet" href="/static/styles.css">
   </head>
   <body>
@@ -12,7 +12,7 @@
         <div class="masthead">
           <div>
             <p class="eyebrow">Local archive tool</p>
-            <h1>Instagram Archive Studio</h1>
+            <h1>Social Archive Studio</h1>
           </div>
           <div class="status-pill" id="serviceStatus">Checking service</div>
         </div>
@@ -25,16 +25,16 @@
           </div>
 
           <div class="mode-panel is-active" data-panel="single">
-            <label for="url">Instagram URL</label>
+            <label for="url">Social Media URL</label>
             <div class="url-row">
-              <input id="url" name="url" type="url" placeholder="https://www.instagram.com/reel/..." autocomplete="off">
+              <input id="url" name="url" type="url" placeholder="https://www.youtube.com/watch?v=... or https://www.tiktok.com/@user/video/..." autocomplete="off">
               <button type="submit">Start</button>
             </div>
           </div>
 
           <div class="mode-panel" data-panel="batch">
-            <label for="batchUrls">Instagram URLs</label>
-            <textarea id="batchUrls" rows="7" placeholder="https://www.instagram.com/p/...&#10;https://www.instagram.com/reel/..."></textarea>
+            <label for="batchUrls">Social Media URLs</label>
+            <textarea id="batchUrls" rows="7" placeholder="https://www.instagram.com/p/...&#10;https://www.youtube.com/watch?v=...&#10;https://www.tiktok.com/@user/video/..."></textarea>
             <button type="submit">Start Batch</button>
           </div>
 

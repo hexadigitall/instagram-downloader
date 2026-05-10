@@ -9,7 +9,7 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 
 cat <<'MSG'
-Instagram Archive Studio is installed.
+Social Archive Studio is installed.
 
 Run:
   . .venv/bin/activate

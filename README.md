@@ -1,13 +1,15 @@
-# Instagram Archive Studio
+# Social Archive Studio
 
-A local-first Instagram media archiving tool for creators, marketers, researchers, and everyday users who need to save content they own or have permission to download.
+A local-first social media archiving tool for creators, marketers, researchers, and everyday users who need to save content they own or have permission to download.
 
 This project is intentionally positioned as a rights-respecting archive assistant, not a stealth scraper. The app asks users to confirm that they own the content, have permission, or are otherwise allowed to save it before a job can run.
 
 ## What It Does
 
-- Downloads public Instagram post, Reel, and video URLs through `instaloader`.
-- Queues batches of Instagram URLs from the web UI or CLI.
+- Downloads supported Instagram, Twitter/X, TikTok, Snapchat, Pinterest, Facebook, and YouTube URLs.
+- Uses `instaloader` for Instagram post/profile archive workflows.
+- Uses `yt-dlp` for Twitter/X, TikTok, Snapchat, Pinterest, Facebook, and YouTube media URLs.
+- Queues batches of supported social media URLs from the web UI or CLI.
 - Detects duplicates by shortcode after a completed archive exists.
 - Supports owner profile archives with a local Instaloader session file.
 - Provides a clean local web interface for paste-link workflows.
@@ -38,7 +40,8 @@ CLI usage:
 
 ```bash
 python -m instagram_archive_studio.cli "https://www.instagram.com/p/SHORTCODE/" --yes-i-have-rights
-python -m instagram_archive_studio.cli "https://www.instagram.com/reel/SHORTCODE/" --yes-i-have-rights --no-zip
+python -m instagram_archive_studio.cli "https://www.youtube.com/watch?v=VIDEO_ID" --yes-i-have-rights
+python -m instagram_archive_studio.cli "https://www.tiktok.com/@user/video/VIDEO_ID" --yes-i-have-rights --no-zip
 python -m instagram_archive_studio.cli --batch-file urls.txt --yes-i-have-rights
 python -m instagram_archive_studio.cli --profile yourbrand --session-file ~/.config/instaloader/session-yourbrand --yes-i-have-rights
 python -m instagram_archive_studio.cli --export-csv exports/jobs.csv
@@ -52,14 +55,14 @@ bash scripts/install_wsl.sh
 
 ## Product Boundaries
 
-Use this tool only for content you own, content you have permission to save, or content you are legally allowed to archive. Instagram and Meta policies restrict automated collection without permission, so this app is designed for narrow, user-directed archiving rather than bulk scraping.
+Use this tool only for content you own, content you have permission to save, or content you are legally allowed to archive. Social platforms often restrict automated collection without permission, so this app is designed for narrow, user-directed archiving rather than bulk scraping.
 
 ## Project Layout
 
 ```text
 instagram_archive_studio/
   cli.py             Command-line entry point
-  downloader.py      Instaloader integration and job lifecycle
+  downloader.py      Instaloader/yt-dlp integration and job lifecycle
   server.py          Standard-library local web server and API
   static/
     index.html       App shell

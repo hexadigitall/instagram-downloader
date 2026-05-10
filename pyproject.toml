@@ -3,22 +3,25 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "instagram-archive-studio"
+name = "social-archive-studio"
 version = "0.1.0"
-description = "Local-first Instagram media archive tool for permitted creator and agency workflows."
+description = "Local-first social media archive tool for permitted creator and agency workflows."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "instaloader>=4.15.1",
+  "yt-dlp>=2025.12.8",
   "requests>=2.31.0",
   "python-dotenv>=1.0.0",
   "tqdm>=4.66.0",
 ]
-authors = [{ name = "Instagram Archive Studio" }]
+authors = [{ name = "Social Archive Studio" }]
 license = { text = "Proprietary" }
-keywords = ["instagram", "archive", "creator-tools", "media-library"]
+keywords = ["instagram", "youtube", "tiktok", "twitter", "archive", "creator-tools", "media-library"]
 
 [project.scripts]
+social-archive-studio = "instagram_archive_studio.cli:main"
+social-archive-server = "instagram_archive_studio.server:run"
 instagram-archive-studio = "instagram_archive_studio.cli:main"
 instagram-archive-server = "instagram_archive_studio.server:run"
 

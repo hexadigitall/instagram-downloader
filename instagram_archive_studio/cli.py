@@ -9,9 +9,9 @@ from .downloader import DownloadManager, JobStore, export_jobs_csv, export_jobs_
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Download permitted Instagram media into a local archive.")
-    parser.add_argument("url", nargs="?", help="Instagram post, Reel, or video URL")
-    parser.add_argument("--batch-file", help="Text file with one Instagram URL per line")
+    parser = argparse.ArgumentParser(description="Download permitted social media into a local archive.")
+    parser.add_argument("url", nargs="?", help="Supported social media URL")
+    parser.add_argument("--batch-file", help="Text file with one supported social media URL per line")
     parser.add_argument("--profile", help="Archive an Instagram profile you own or manage")
     parser.add_argument("--session-file", help="Local Instaloader session file for owner archives")
     parser.add_argument("--downloads", default="downloads", help="Download directory")

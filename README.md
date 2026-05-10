@@ -7,6 +7,7 @@ This project is intentionally positioned as a rights-respecting archive assistan
 ## What It Does
 
 - Downloads supported Instagram, Twitter/X, TikTok, Snapchat, Pinterest, Facebook, and YouTube URLs.
+- Previews title, uploader, duration, and thumbnail before download when the platform exposes metadata.
 - Uses `instaloader` for Instagram post/profile archive workflows.
 - Uses `yt-dlp` for Twitter/X, TikTok, Snapchat, Pinterest, Facebook, and YouTube media URLs.
 - Queues batches of supported social media URLs from the web UI or CLI.
@@ -16,6 +17,7 @@ This project is intentionally positioned as a rights-respecting archive assistan
 - Provides a CLI for batchable creator and power-user workflows.
 - Stores downloads in per-job folders with status, metadata, logs, and optional ZIP archives.
 - Exports job history as CSV or JSON.
+- Offers browser-save links for completed files and ZIP archives, using the user's browser download folder settings.
 - Keeps a local job history so users can recover prior results.
 - Avoids collecting Instagram credentials in the web UI.
 

@@ -11,6 +11,7 @@ from instagram_archive_studio.downloader import (
     export_jobs_csv,
     export_jobs_json,
     extract_shortcode,
+    preview_from_info,
     validate_supported_url,
     validate_instagram_url,
     validate_username,
@@ -188,6 +189,27 @@ class ProfileValidationTests(unittest.TestCase):
         self.assertEqual(validate_username("@brand.account"), "brand.account")
         with self.assertRaises(ValueError):
             validate_username("bad/user")
+
+
+class PreviewTests(unittest.TestCase):
+    def test_builds_preview_from_extractor_info(self) -> None:
+        preview = preview_from_info(
+            "https://www.youtube.com/watch?v=abc",
+            "youtube",
+            "youtube.com/watch?v=abc",
+            {
+                "title": "Launch video",
+                "uploader": "Hexadigitall",
+                "thumbnail": "https://img.example/thumb.jpg",
+                "duration": 125,
+                "webpage_url": "https://www.youtube.com/watch?v=abc",
+            },
+        )
+
+        self.assertEqual(preview.platform, "youtube")
+        self.assertEqual(preview.title, "Launch video")
+        self.assertEqual(preview.uploader, "Hexadigitall")
+        self.assertEqual(preview.thumbnail, "https://img.example/thumb.jpg")
 
 
 if __name__ == "__main__":

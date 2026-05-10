@@ -9,7 +9,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
-from .downloader import DownloadManager, JobStore, export_jobs_csv, export_jobs_json
+from .downloader import DownloadManager, JobStore, export_jobs_csv, export_jobs_json, preview_media_url
 
 
 APP_ROOT = Path(__file__).resolve().parent
@@ -62,6 +62,8 @@ class AppHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/api/download":
             self.handle_start_download()
+        elif parsed.path == "/api/preview":
+            self.handle_preview()
         elif parsed.path == "/api/batch":
             self.handle_start_batch()
         elif parsed.path == "/api/profile":
@@ -80,6 +82,16 @@ class AppHandler(BaseHTTPRequestHandler):
             job = MANAGER.start(url, make_zip=make_zip)
             status = 200 if job.status == "duplicate" else 202
             self.send_json({"job": asdict(job)}, status)
+        except ValueError as exc:
+            self.send_json({"error": str(exc)}, 400)
+        except Exception as exc:
+            self.send_json({"error": str(exc)}, 500)
+
+    def handle_preview(self) -> None:
+        try:
+            body = self.read_json()
+            preview = preview_media_url(str(body.get("url", "")))
+            self.send_json({"preview": asdict(preview)})
         except ValueError as exc:
             self.send_json({"error": str(exc)}, 400)
         except Exception as exc:

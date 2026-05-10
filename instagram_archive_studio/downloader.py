@@ -43,6 +43,18 @@ class DownloadError(RuntimeError):
 
 
 @dataclass
+class MediaPreview:
+    url: str
+    platform: str
+    target: str
+    title: str | None = None
+    uploader: str | None = None
+    thumbnail: str | None = None
+    duration: int | float | None = None
+    webpage_url: str | None = None
+
+
+@dataclass
 class Job:
     id: str
     url: str = ""
@@ -122,6 +134,37 @@ def validate_supported_url(raw_url: str) -> tuple[str, str, str]:
 
     target = canonical_media_key(url)
     return url, platform, target
+
+
+def preview_media_url(raw_url: str) -> MediaPreview:
+    clean_url, platform, target = validate_supported_url(raw_url)
+    try:
+        import yt_dlp
+    except ImportError as exc:
+        raise DownloadError("Install dependencies with: python -m pip install -r requirements.txt") from exc
+
+    options = {
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "noplaylist": True,
+    }
+    with yt_dlp.YoutubeDL(options) as ydl:
+        info = ydl.extract_info(clean_url, download=False)
+    return preview_from_info(clean_url, platform, target, info)
+
+
+def preview_from_info(url: str, platform: str, target: str, info: dict[str, Any]) -> MediaPreview:
+    return MediaPreview(
+        url=url,
+        platform=platform,
+        target=target,
+        title=info.get("title"),
+        uploader=info.get("uploader") or info.get("channel"),
+        thumbnail=info.get("thumbnail"),
+        duration=info.get("duration"),
+        webpage_url=info.get("webpage_url") or url,
+    )
 
 
 def extract_shortcode(url: str) -> str:

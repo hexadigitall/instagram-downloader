@@ -222,6 +222,20 @@ button:hover {
   background: var(--accent-strong);
 }
 
+button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.secondary-button {
+  color: var(--accent);
+  background: #eef6ff;
+}
+
+.secondary-button:hover {
+  color: #fff;
+}
+
 .ghost-button {
   color: var(--accent);
   background: transparent;
@@ -266,6 +280,44 @@ button:hover {
   font-weight: 650;
 }
 
+.preview-panel {
+  display: grid;
+  grid-template-columns: 128px 1fr;
+  gap: 14px;
+  align-items: center;
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.preview-panel[hidden] {
+  display: none;
+}
+
+.preview-panel img {
+  width: 128px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #e8edf3;
+}
+
+.preview-panel h2 {
+  margin: 2px 0 6px;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.preview-kicker,
+#previewMeta {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .jobs-section {
   margin-top: 28px;
 }
@@ -307,6 +359,42 @@ button:hover {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 14px;
+}
+
+.job-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.action-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 0 12px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 750;
+}
+
+.primary-action {
+  color: #fff;
+  background: var(--accent);
+}
+
+.action-link:hover {
+  background: var(--accent-strong);
+  color: #fff;
+}
+
+.save-note {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 650;
 }
 
 .file-link {
@@ -401,9 +489,18 @@ pre {
 
   button,
   .status-pill,
-  .ghost-link {
+  .ghost-link,
+  .action-link {
     width: 100%;
     justify-content: center;
+  }
+
+  .preview-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-panel img {
+    width: 100%;
   }
 
   .mode-tabs {

@@ -22,6 +22,8 @@ The responsible market position is not "download anything from anyone." The bett
 - Clear content-rights confirmation before downloading.
 - Status area showing queued, running, complete, and failed jobs.
 - Result cards with file counts, metadata, log, and ZIP/download links.
+- URL preview with thumbnail/title confirmation before downloading.
+- Browser-save actions that hand completed files to the user's configured browser downloads folder.
 - Local history so users can return to previous jobs.
 - No credential collection in the browser UI.
 

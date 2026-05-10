@@ -1,5 +1,11 @@
 const form = document.querySelector("#downloadForm");
 const urlInput = document.querySelector("#url");
+const previewButton = document.querySelector("#previewButton");
+const previewPanel = document.querySelector("#previewPanel");
+const previewImage = document.querySelector("#previewImage");
+const previewPlatform = document.querySelector("#previewPlatform");
+const previewTitle = document.querySelector("#previewTitle");
+const previewMeta = document.querySelector("#previewMeta");
 const batchUrlsInput = document.querySelector("#batchUrls");
 const profileUsernameInput = document.querySelector("#profileUsername");
 const sessionFileInput = document.querySelector("#sessionFile");
@@ -74,6 +80,7 @@ function renderJobs(jobs) {
     node.querySelector(".job-meta").textContent = buildMetaLine(job);
     node.querySelector("pre").textContent = (job.log || []).join("\n");
 
+    renderActions(node.querySelector(".job-actions"), job);
     const files = node.querySelector(".job-files");
     renderFiles(files, job);
     jobsList.append(node);
@@ -115,8 +122,28 @@ function renderFiles(container, job) {
     link.href = `/downloads/${job.id}/${encodeURIComponent(file)}`;
     link.textContent = file;
     link.className = file.endsWith(".zip") ? "file-link archive-link" : "file-link";
+    link.download = file.split("/").pop();
     container.append(link);
   }
+}
+
+function renderActions(container, job) {
+  container.replaceChildren();
+  if (!job.files?.length) return;
+
+  if (job.archive) {
+    const archive = document.createElement("a");
+    archive.href = `/downloads/${job.id}/${encodeURIComponent(job.archive)}`;
+    archive.textContent = "Save ZIP to browser";
+    archive.className = "action-link primary-action";
+    archive.download = job.archive;
+    container.append(archive);
+  }
+
+  const folderNote = document.createElement("span");
+  folderNote.className = "save-note";
+  folderNote.textContent = "Uses your browser download folder";
+  container.append(folderNote);
 }
 
 form.addEventListener("submit", async (event) => {
@@ -140,6 +167,50 @@ form.addEventListener("submit", async (event) => {
     formMessage.textContent = error.message;
   }
 });
+
+previewButton.addEventListener("click", async () => {
+  formMessage.textContent = "";
+  previewPanel.hidden = true;
+  previewButton.disabled = true;
+  previewButton.textContent = "Checking";
+
+  try {
+    const payload = await requestJson("/api/preview", {
+      method: "POST",
+      body: JSON.stringify({ url: urlInput.value }),
+    });
+    renderPreview(payload.preview);
+  } catch (error) {
+    formMessage.textContent = error.message;
+  } finally {
+    previewButton.disabled = false;
+    previewButton.textContent = "Preview";
+  }
+});
+
+function renderPreview(preview) {
+  previewPanel.hidden = false;
+  previewPlatform.textContent = platformLabel(preview.platform);
+  previewTitle.textContent = preview.title || "Preview found";
+  previewMeta.textContent = [preview.uploader, formatDuration(preview.duration)].filter(Boolean).join(" | ");
+  if (preview.thumbnail) {
+    previewImage.hidden = false;
+    previewImage.src = preview.thumbnail;
+    previewImage.alt = preview.title || "Media preview thumbnail";
+  } else {
+    previewImage.hidden = true;
+    previewImage.removeAttribute("src");
+  }
+}
+
+function formatDuration(duration) {
+  if (!duration) return "";
+  const total = Number(duration);
+  if (!Number.isFinite(total)) return "";
+  const minutes = Math.floor(total / 60);
+  const seconds = Math.floor(total % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
 
 async function submitActiveMode() {
   const basePayload = {

@@ -4,10 +4,12 @@ A local-first social media archiving tool for creators, marketers, researchers, 
 
 This project is intentionally positioned as a rights-respecting archive assistant, not a stealth scraper. The app asks users to confirm that they own the content, have permission, or are otherwise allowed to save it before a job can run.
 
+
 ## What It Does
 
 - Downloads supported Instagram, Twitter/X, TikTok, Snapchat, Pinterest, Facebook, and YouTube URLs.
 - Previews title, uploader, duration, and thumbnail before download when the platform exposes metadata.
+- **YouTube: Choose video quality before download** (e.g., 240p, 360p, 720p) to save data or storage. The web UI will show a quality dropdown after previewing a YouTube link.
 - Uses `instaloader` for Instagram post/profile archive workflows.
 - Uses `yt-dlp` for Twitter/X, TikTok, Snapchat, Pinterest, Facebook, and YouTube media URLs.
 - Queues batches of supported social media URLs from the web UI or CLI.
@@ -20,16 +22,19 @@ This project is intentionally positioned as a rights-respecting archive assistan
 - Offers browser-save links for completed files and ZIP archives, using the user's browser download folder settings.
 - Keeps a local job history so users can recover prior results.
 - Avoids collecting Instagram credentials in the web UI.
+- **Shows a download progress bar** for each job in the web UI.
+- **Clear Jobs View**: Hide all jobs from the browser view (without deleting them) to start a new set of jobs with a clean slate.
 
 ## Quick Start
+
 
 Install Python 3.11 or newer, then run from WSL Ubuntu:
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m instagram_archive_studio.server
+python3 -m pip install -r requirements.txt
+python3 -m instagram_archive_studio.server
 ```
 
 Open:
@@ -41,12 +46,12 @@ http://127.0.0.1:8080
 CLI usage:
 
 ```bash
-python -m instagram_archive_studio.cli "https://www.instagram.com/p/SHORTCODE/" --yes-i-have-rights
-python -m instagram_archive_studio.cli "https://www.youtube.com/watch?v=VIDEO_ID" --yes-i-have-rights
-python -m instagram_archive_studio.cli "https://www.tiktok.com/@user/video/VIDEO_ID" --yes-i-have-rights --no-zip
-python -m instagram_archive_studio.cli --batch-file urls.txt --yes-i-have-rights
-python -m instagram_archive_studio.cli --profile yourbrand --session-file ~/.config/instaloader/session-yourbrand --yes-i-have-rights
-python -m instagram_archive_studio.cli --export-csv exports/jobs.csv
+python3 -m instagram_archive_studio.cli "https://www.instagram.com/p/SHORTCODE/" --yes-i-have-rights
+python3 -m instagram_archive_studio.cli "https://www.youtube.com/watch?v=VIDEO_ID" --yes-i-have-rights
+python3 -m instagram_archive_studio.cli "https://www.tiktok.com/@user/video/VIDEO_ID" --yes-i-have-rights --no-zip
+python3 -m instagram_archive_studio.cli --batch-file urls.txt --yes-i-have-rights
+python3 -m instagram_archive_studio.cli --profile yourbrand --session-file ~/.config/instaloader/session-yourbrand --yes-i-have-rights
+python3 -m instagram_archive_studio.cli --export-csv exports/jobs.csv
 ```
 
 ## WSL Installer
@@ -80,6 +85,9 @@ tests/
 downloads/          Created at runtime
 ```
 
-## Known Runtime Requirement
+## Known Runtime Requirements
 
-The current workspace did not have Python available during project creation. Install Python before running the app.
+- Python 3.11 or newer must be installed and available as `python3` in your environment (WSL/Ubuntu recommended).
+- `ffmpeg` must be installed and available in your system PATH for video/audio downloads (install via `sudo apt install ffmpeg`).
+- All Python dependencies must be installed using `python3 -m pip install -r requirements.txt` inside your virtual environment.
+- For best results, use a virtual environment (`python3 -m venv .venv`).

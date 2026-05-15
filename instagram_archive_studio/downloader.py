@@ -52,6 +52,7 @@ class MediaPreview:
     thumbnail: str | None = None
     duration: int | float | None = None
     webpage_url: str | None = None
+    formats: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -151,7 +152,30 @@ def preview_media_url(raw_url: str) -> MediaPreview:
     }
     with yt_dlp.YoutubeDL(options) as ydl:
         info = ydl.extract_info(clean_url, download=False)
-    return preview_from_info(clean_url, platform, target, info)
+    preview = preview_from_info(clean_url, platform, target, info)
+    # Add available formats for YouTube
+    if platform == "youtube" and "formats" in info:
+        preview.formats = []
+        for f in info["formats"]:
+            if f.get("vcodec") != "none" and f.get("height"):
+                acodec = f.get("acodec")
+                if acodec and acodec != "none":
+                    audio_label = "Video+Audio"
+                else:
+                    audio_label = "Video only"
+                preview.formats.append({
+                    "format_id": f["format_id"],
+                    "ext": f["ext"],
+                    "height": f.get("height"),
+                    "width": f.get("width"),
+                    "format_note": f.get("format_note"),
+                    "filesize": f.get("filesize"),
+                    "tbr": f.get("tbr"),
+                    "vcodec": f.get("vcodec"),
+                    "acodec": acodec,
+                    "audio_label": audio_label,
+                })
+    return preview
 
 
 def preview_from_info(url: str, platform: str, target: str, info: dict[str, Any]) -> MediaPreview:
@@ -204,7 +228,7 @@ class JobStore:
         self._lock = threading.RLock()
         self._load_existing_jobs()
 
-    def create(self, url: str) -> Job:
+    def create(self, url: str, format_id: str = None) -> Job:
         clean_url, platform, target = validate_supported_url(url)
         shortcode = target if platform == "instagram" else None
         job_id = uuid4().hex[:12]
@@ -219,7 +243,7 @@ class JobStore:
             shortcode=shortcode,
             output_dir=str(output_dir),
         )
-        duplicate = self.find_completed_media(platform, target)
+        duplicate = self.find_completed_media(platform, target, format_id)
         if duplicate:
             job.duplicate_of = duplicate.id
             job.add_log(f"Matches completed job {duplicate.id}")
@@ -260,7 +284,7 @@ class JobStore:
         with self._lock:
             return sorted(self._jobs.values(), key=lambda job: job.created_at, reverse=True)
 
-    def find_completed_media(self, platform: str, target: str) -> Job | None:
+    def find_completed_media(self, platform: str, target: str, format_id: str = None) -> Job | None:
         with self._lock:
             for job in self._jobs.values():
                 if (
@@ -269,7 +293,15 @@ class JobStore:
                     and job.target == target
                     and job.status == "complete"
                 ):
-                    return job
+                    # For YouTube, check format_id in metadata
+                    if platform == "youtube" and format_id:
+                        if job.metadata and job.metadata.get("format_id") == format_id:
+                            return job
+                        else:
+                            continue
+                    # For other platforms or no format_id, match as before
+                    if platform != "youtube" or not format_id:
+                        return job
         return None
 
     def find_completed_post(self, shortcode: str) -> Job | None:
@@ -304,8 +336,8 @@ class DownloadManager:
         self.profile_downloader = profile_downloader or download_instagram_profile
         self.generic_downloader = generic_downloader or download_with_ytdlp
 
-    def start(self, url: str, make_zip: bool = True) -> Job:
-        job = self.store.create(url)
+    def start(self, url: str, make_zip: bool = True, format_id: str = None) -> Job:
+        job = self.store.create(url, format_id=format_id)
         if job.duplicate_of:
             duplicate = self.store.get(job.duplicate_of)
             job.status = "duplicate"
@@ -314,7 +346,7 @@ class DownloadManager:
             job.touch("Already archived")
             self.store.save(job)
             return job
-        thread = threading.Thread(target=self._run_job, args=(job.id, make_zip), daemon=True)
+        thread = threading.Thread(target=self._run_job, args=(job.id, make_zip, format_id), daemon=True)
         with self._lock:
             self._threads[job.id] = thread
         thread.start()
@@ -346,7 +378,7 @@ class DownloadManager:
             raise DownloadError("Job disappeared.")
         return current
 
-    def _run_job(self, job_id: str, make_zip: bool) -> None:
+    def _run_job(self, job_id: str, make_zip: bool, format_id: str = None) -> None:
         job = self.store.get(job_id)
         if not job:
             return
@@ -360,11 +392,14 @@ class DownloadManager:
                 self.profile_downloader(job)
             elif job.platform == "instagram":
                 self.post_downloader(job)
+            elif job.platform == "youtube" and format_id:
+                download_with_ytdlp(job, format_id=format_id)
             else:
                 self.generic_downloader(job)
 
             summary_metadata = dict(job.metadata)
             job.files = collect_downloaded_files(Path(job.output_dir))
+            self.store.save(job)  # Save after collecting files
             job.metadata = {
                 "summary": summary_metadata,
                 "download_metadata": load_download_metadata(Path(job.output_dir)),
@@ -372,6 +407,7 @@ class DownloadManager:
             if make_zip:
                 job.archive = create_archive(Path(job.output_dir))
                 job.files = collect_downloaded_files(Path(job.output_dir))
+                self.store.save(job)  # Save after creating archive and updating files
             job.status = "complete"
             job.add_log("Download complete")
         except Exception as exc:
@@ -452,7 +488,7 @@ def download_instagram_profile(job: Job) -> None:
     loader.download_profile(profile.username, profile_pic=True, fast_update=True)
 
 
-def download_with_ytdlp(job: Job) -> None:
+def download_with_ytdlp(job: Job, format_id: str = None) -> None:
     try:
         import yt_dlp
     except ImportError as exc:
@@ -460,23 +496,42 @@ def download_with_ytdlp(job: Job) -> None:
 
     output_dir = Path(job.output_dir)
     output_template = str(output_dir / "%(extractor)s-%(id)s-%(title).200B.%(ext)s")
+    # If a specific format_id is given, check if it's video-only and merge with best audio
+    fmt = format_id if format_id else "bestvideo+bestaudio/best"
+    if format_id and job.platform == "youtube":
+        # Try to ensure merging with best audio if video-only
+        # Use yt-dlp's format selection: "FORMAT_ID+bestaudio/best"
+        fmt = f"{format_id}+bestaudio/best"
+    def progress_hook(d):
+        if d.get("status") == "downloading":
+            percent = d.get("_percent_str")
+            speed = d.get("_speed_str")
+            eta = d.get("eta")
+            msg = f"{percent.strip() if percent else ''}"
+            if speed:
+                msg += f" | {speed.strip()}"
+            if eta:
+                msg += f" | ETA: {eta}s"
+            job.touch(msg)
     options = {
         "outtmpl": output_template,
-        "format": "bestvideo+bestaudio/best",
+        "format": fmt,
         "merge_output_format": "mp4",
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
         "writeinfojson": True,
         "writethumbnail": True,
+        "progress_hooks": [progress_hook],
     }
-    job.add_log(f"Using yt-dlp for {SUPPORTED_PLATFORM_LABELS.get(job.platform, job.platform)}")
+    job.add_log(f"Using yt-dlp for {SUPPORTED_PLATFORM_LABELS.get(job.platform, job.platform)}" + (f" (format: {format_id})" if format_id else ""))
     with yt_dlp.YoutubeDL(options) as ydl:
         info = ydl.extract_info(job.url, download=True)
 
     job.metadata = {
         "platform": job.platform,
         "extractor": info.get("extractor"),
+        "format_id": format_id if format_id else info.get("format_id"),
         "id": info.get("id"),
         "title": info.get("title"),
         "uploader": info.get("uploader"),

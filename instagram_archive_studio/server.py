@@ -68,8 +68,43 @@ class AppHandler(BaseHTTPRequestHandler):
             self.handle_start_batch()
         elif parsed.path == "/api/profile":
             self.handle_start_profile_archive()
+        elif parsed.path == "/api/archive_jobs":
+            self.handle_archive_jobs()
         else:
             self.send_error(HTTPStatus.NOT_FOUND, "Not found")
+    def handle_archive_jobs(self) -> None:
+        # Move all jobs to an archive file (JSON) and clear the job store for a new session
+        try:
+            jobs = STORE.list()
+            if not jobs:
+                self.send_json({"archived": False, "message": "No jobs to archive."})
+                return
+            archive_dir = Path("downloads/job_archives")
+            archive_dir.mkdir(parents=True, exist_ok=True)
+            archive_path = archive_dir / f"archived_jobs_{int(datetime.now().timestamp())}.json"
+            with open(archive_path, "w", encoding="utf-8") as f:
+                json.dump([asdict(job) for job in jobs], f, indent=2)
+            # Clear jobs (delete job folders and remove from store)
+            for job in jobs:
+                job_dir = Path(job.output_dir)
+                if job_dir.exists():
+                    for child in job_dir.iterdir():
+                        try:
+                            if child.is_file():
+                                child.unlink()
+                            elif child.is_dir():
+                                import shutil
+                                shutil.rmtree(child)
+                        except Exception:
+                            pass
+                    try:
+                        job_dir.rmdir()
+                    except Exception:
+                        pass
+            STORE.clear()
+            self.send_json({"archived": True, "archive_path": str(archive_path)})
+        except Exception as exc:
+            self.send_json({"archived": False, "error": str(exc)}, 500)
 
     def handle_start_download(self) -> None:
         try:
@@ -79,7 +114,8 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
             url = str(body.get("url", ""))
             make_zip = bool(body.get("zip", True))
-            job = MANAGER.start(url, make_zip=make_zip)
+            format_id = body.get("format_id")
+            job = MANAGER.start(url, make_zip=make_zip, format_id=format_id)
             status = 200 if job.status == "duplicate" else 202
             self.send_json({"job": asdict(job)}, status)
         except ValueError as exc:
@@ -91,7 +127,10 @@ class AppHandler(BaseHTTPRequestHandler):
         try:
             body = self.read_json()
             preview = preview_media_url(str(body.get("url", "")))
-            self.send_json({"preview": asdict(preview)})
+            result = asdict(preview)
+            if hasattr(preview, "formats"):
+                result["formats"] = preview.formats
+            self.send_json({"preview": result})
         except ValueError as exc:
             self.send_json({"error": str(exc)}, 400)
         except Exception as exc:

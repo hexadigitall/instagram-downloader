@@ -23,8 +23,16 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+
+    import shutil
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    # Check for ffmpeg if YouTube or video downloads are requested
+    if args.url or args.batch_file or args.profile:
+        if shutil.which("ffmpeg") is None:
+            print("ERROR: ffmpeg is not installed or not found in PATH. Please install ffmpeg to enable video downloads.")
+            return 3
 
     store = JobStore(Path(args.downloads))
     manager = DownloadManager(store)

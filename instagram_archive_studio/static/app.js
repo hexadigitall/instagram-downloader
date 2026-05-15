@@ -6,6 +6,8 @@ const previewImage = document.querySelector("#previewImage");
 const previewPlatform = document.querySelector("#previewPlatform");
 const previewTitle = document.querySelector("#previewTitle");
 const previewMeta = document.querySelector("#previewMeta");
+const qualityLabel = document.getElementById("qualityLabel");
+const qualitySelect = document.getElementById("qualitySelect");
 const batchUrlsInput = document.querySelector("#batchUrls");
 const profileUsernameInput = document.querySelector("#profileUsername");
 const sessionFileInput = document.querySelector("#sessionFile");
@@ -45,7 +47,10 @@ async function checkHealth() {
   }
 }
 
+let jobsHidden = false;
+
 async function loadJobs() {
+  if (jobsHidden) return; // Don't render jobs if hidden
   const payload = await requestJson("/api/jobs");
   renderJobs(payload.jobs || []);
   const active = payload.jobs?.some((job) => ["queued", "running"].includes(job.status));
@@ -57,6 +62,22 @@ async function loadJobs() {
     pollTimer = null;
   }
 }
+
+document.getElementById("clearJobsViewButton")?.addEventListener("click", () => {
+  fetch("/api/archive_jobs", { method: "POST" })
+    .then((res) => res.json())
+    .then((result) => {
+      if (result.archived) {
+        formMessage.textContent = "Jobs archived. You can start a new session.";
+      } else {
+        formMessage.textContent = result.message || result.error || "No jobs to archive.";
+      }
+      loadJobs();
+    })
+    .catch(() => {
+      formMessage.textContent = "Failed to archive jobs.";
+    });
+});
 
 function renderJobs(jobs) {
   jobsList.replaceChildren();
@@ -79,6 +100,29 @@ function renderJobs(jobs) {
     node.querySelector(".job-message").textContent = job.message || "";
     node.querySelector(".job-meta").textContent = buildMetaLine(job);
     node.querySelector("pre").textContent = (job.log || []).join("\n");
+
+    // Progress bar logic
+    const progressBarContainer = node.querySelector('.progress-bar-container');
+    const progressBar = node.querySelector('.progress-bar');
+    let percent = null;
+    // Try to extract percent from job.message (yt-dlp style)
+    if (job.status === 'running' && job.message) {
+      const match = job.message.match(/\b(\d{1,3}\.\d)%/);
+      if (match) {
+        percent = parseFloat(match[1]);
+      }
+    }
+    if (job.status === 'running') {
+      progressBarContainer.style.display = 'block';
+      if (percent !== null && percent >= 0 && percent <= 100) {
+        progressBar.style.width = percent + '%';
+      } else {
+        progressBar.style.width = '5%';
+      }
+    } else {
+      progressBarContainer.style.display = 'none';
+      progressBar.style.width = '0%';
+    }
 
     renderActions(node.querySelector(".job-actions"), job);
     const files = node.querySelector(".job-files");
@@ -140,6 +184,59 @@ function renderActions(container, job) {
     container.append(archive);
   }
 
+  // Restart job with different format (for YouTube)
+  if (job.platform === "youtube" && Array.isArray(job.metadata?.formats) && job.metadata.formats.length > 0) {
+    const restartDiv = document.createElement("div");
+    restartDiv.style.marginTop = "8px";
+    const restartLabel = document.createElement("label");
+    restartLabel.textContent = "Restart with different quality:";
+    restartLabel.style.marginRight = "6px";
+    const restartSelect = document.createElement("select");
+    for (const f of job.metadata.formats) {
+      const label = `${f.height || ''}p${f.format_note ? ' ' + f.format_note : ''}${f.filesize ? ` (${(f.filesize/1048576).toFixed(1)}MB)` : ''} — ${f.audio_label || ''}`;
+      const opt = document.createElement("option");
+      opt.value = f.format_id;
+      opt.textContent = label;
+      restartSelect.appendChild(opt);
+    }
+    const restartBtn = document.createElement("button");
+    restartBtn.textContent = "Restart";
+    restartBtn.type = "button";
+    restartBtn.className = "ghost-button";
+    restartBtn.onclick = async () => {
+      restartBtn.disabled = true;
+      restartBtn.textContent = "Restarting...";
+      try {
+        const res = await fetch("/api/download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: job.url,
+            rightsConfirmed: true,
+            zip: true,
+            format_id: restartSelect.value,
+          }),
+        });
+        const payload = await res.json();
+        if (payload.job && payload.job.id) {
+          formMessage.textContent = `Restarted as job ${payload.job.id}.`;
+          await loadJobs();
+        } else {
+          formMessage.textContent = payload.error || "Failed to restart job.";
+        }
+      } catch (e) {
+        formMessage.textContent = "Failed to restart job.";
+      } finally {
+        restartBtn.disabled = false;
+        restartBtn.textContent = "Restart";
+      }
+    };
+    restartDiv.appendChild(restartLabel);
+    restartDiv.appendChild(restartSelect);
+    restartDiv.appendChild(restartBtn);
+    container.append(restartDiv);
+  }
+
   const folderNote = document.createElement("span");
   folderNote.className = "save-note";
   folderNote.textContent = "Uses your browser download folder";
@@ -189,6 +286,24 @@ previewButton.addEventListener("click", async () => {
 });
 
 function renderPreview(preview) {
+    // Add note about video-only formats
+    const noteId = "videoAudioNote";
+    let note = document.getElementById(noteId);
+    if (!note) {
+      note = document.createElement("div");
+      note.id = noteId;
+      note.style.fontSize = "0.95em";
+      note.style.color = "#666";
+      note.style.margin = "6px 0 0 0";
+      qualityLabel.parentNode.insertBefore(note, qualityLabel.nextSibling);
+    }
+    if (preview.platform === "youtube") {
+      note.textContent = "Note: If you select a 'Video only' format, the app will automatically merge it with the best available audio.";
+      note.style.display = "block";
+    } else {
+      note.textContent = "";
+      note.style.display = "none";
+    }
   previewPanel.hidden = false;
   previewPlatform.textContent = platformLabel(preview.platform);
   previewTitle.textContent = preview.title || "Preview found";
@@ -200,6 +315,27 @@ function renderPreview(preview) {
   } else {
     previewImage.hidden = true;
     previewImage.removeAttribute("src");
+  }
+  // Quality selector for YouTube
+  if (preview.platform === "youtube" && Array.isArray(preview.formats) && preview.formats.length > 0) {
+      qualityLabel.style.display = "inline-block";
+      qualitySelect.innerHTML = "";
+      // Sort by height descending
+      const sorted = [...preview.formats].sort((a, b) => (b.height || 0) - (a.height || 0));
+      for (const f of sorted) {
+        let res = f.height ? `${f.height}p` : '';
+        let note = f.format_note || '';
+        // Avoid duplicated resolution (e.g., '2160p 2160p')
+        let showRes = res && (!note || !note.includes(res));
+        let label = `${showRes ? res : ''}${note ? ' ' + note : ''}${f.filesize ? ` (${(f.filesize/1048576).toFixed(1)}MB)` : ''} — ${f.audio_label || ''}`.trim();
+        const opt = document.createElement("option");
+        opt.value = f.format_id;
+        opt.textContent = label;
+        qualitySelect.appendChild(opt);
+      }
+  } else {
+    qualityLabel.style.display = "none";
+    qualitySelect.innerHTML = "";
   }
 }
 
@@ -239,11 +375,18 @@ async function submitActiveMode() {
     });
   }
 
+  // Add format_id for YouTube if selected
+  let format_id = null;
+  if (qualityLabel.style.display !== "none" && qualitySelect.value) {
+    format_id = qualitySelect.value;
+  }
+
   return requestJson("/api/download", {
     method: "POST",
     body: JSON.stringify({
       ...basePayload,
       url: urlInput.value,
+      ...(format_id ? { format_id } : {}),
     }),
   });
 }
@@ -253,13 +396,16 @@ function setMode(mode) {
   for (const tab of modeTabs) {
     tab.classList.toggle("is-active", tab.dataset.mode === mode);
   }
-  for (const panel of modePanels) {
-    panel.classList.toggle("is-active", panel.dataset.panel === mode);
-  }
-}
-
-for (const tab of modeTabs) {
-  tab.addEventListener("click", () => setMode(tab.dataset.mode));
+      for (const f of job.metadata.formats) {
+        let res = f.height ? `${f.height}p` : '';
+        let note = f.format_note || '';
+        let showRes = res && (!note || !note.includes(res));
+        let label = `${showRes ? res : ''}${note ? ' ' + note : ''}${f.filesize ? ` (${(f.filesize/1048576).toFixed(1)}MB)` : ''} — ${f.audio_label || ''}`.trim();
+        const opt = document.createElement("option");
+        opt.value = f.format_id;
+        opt.textContent = label;
+        restartSelect.appendChild(opt);
+      }
 }
 
 refreshButton.addEventListener("click", loadJobs);
